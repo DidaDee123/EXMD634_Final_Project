@@ -1,59 +1,62 @@
-# --- STEP 1: PREPARATION & CATEGORIZATION ---
-# Create the High vs Low Pb category (Cutoff = 3.5)
-df_final$Pb_Category <- ifelse(df_final$LBXBPB >= 3.5, "High Pb", "Low Pb")
+# -----------------------------------------------------------------------------
+# Analysis of Cardiac Events (CVD): Chi-Square Test
+# -----------------------------------------------------------------------------
+library(tidyverse)
+library(ggplot2)
 
-# Create your two main subsets
-df_immigrants <- df_final[df_final$Is_Immigrant == 1, ]
-df_nonimmigrants <- df_final[df_final$Is_Immigrant == 0, ]
+# 1. Load Data
+data <- read.csv("data/dataset.csv")
 
-# --- STEP 2: TEST A (Within Immigrants) ---
-# Question: Does High Pb increase CVD risk specifically within immigrants?
-# Null: CVD incidence is the same for High Pb and Low Pb immigrants.
+# 2. Preprocessing
+# Filter out missing values for these specific variables
+data_cvd <- data %>%
+  filter(!is.na(Is_Immigrant) & !is.na(Has_CVD)) %>%
+  mutate(
+    Immigrant_Label = factor(Is_Immigrant, 
+                             levels = c(0, 1), 
+                             labels = c("US Born", "Immigrant")),
+    CVD_Label = factor(Has_CVD, 
+                       levels = c(0, 1), 
+                       labels = c("No Event", "Cardiac Event"))
+  )
 
-print("--- TEST A: Immigrants (High Pb vs Low Pb) ---")
-# Create table automatically
-table_immigrants <- table(df_immigrants$Pb_Category, df_immigrants$Has_CVD)
-print(table_immigrants)
+# 3. Create Contingency Table
+cvd_table <- table(data_cvd$Immigrant_Label, data_cvd$CVD_Label)
 
-# Check expected values to see if Chi-Sq is valid
-chisq_check <- chisq.test(table_immigrants, correct=FALSE)
-print("Expected Values:")
-print(chisq_check$expected)
+# 4. Run Chi-Square Test
+chisq_result <- chisq.test(cvd_table)
 
-# Run Fisher's Exact Test (Better choice here since one expected value is likely < 5)
-fisher_test_a <- fisher.test(table_immigrants)
-print("Fisher's Exact Test Result:")
-print(fisher_test_a)
+print("--- CARDIAC EVENT CONTINGENCY TABLE ---")
+print(cvd_table)
 
+print("--- CHI-SQUARE TEST RESULTS ---")
+print(chisq_result)
 
-# --- STEP 3: TEST B (Immigrants vs Non-Immigrants) ---
-# Question: Among people with High Pb, do Immigrants have different CVD rates than Non-Immigrants?
+# 5. Calculate Prevalence (Percentages)
+# prop.table(x, 1) calculates proportions across rows
+prevalence <- prop.table(cvd_table, 1) * 100
+print("--- PREVALENCE OF CVD (%) ---")
+print(round(prevalence, 2))
 
-print("--- TEST B: High Pb Population (Immigrants vs Non-Immigrants) ---")
-# Subset only those with High Pb
-df_high_pb <- df_final[df_final$LBXBPB >= 3.5, ]
+# 6. Visualization: Stacked Bar Chart
+# We calculate percentages manually for the plot to look nice
+plot_data <- data_cvd %>%
+  group_by(Immigrant_Label, CVD_Label) %>%
+  summarise(Count = n()) %>%
+  mutate(Percentage = Count / sum(Count) * 100)
 
-# Create table: Rows = Immigrant Status, Cols = CVD Status
-table_high_pb <- table(df_high_pb$Is_Immigrant, df_high_pb$Has_CVD)
-print(table_high_pb)
+plot_cvd <- ggplot(plot_data, aes(x = Immigrant_Label, y = Percentage, fill = CVD_Label)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Prevalence of Cardiac Events",
+       subtitle = "US Born vs. Immigrants",
+       y = "Percentage (%)",
+       x = "",
+       fill = "Status") +
+  theme_minimal() +
+  scale_fill_brewer(palette = "Pastel1") +
+  geom_text(aes(label = sprintf("%.1f%%", Percentage)), 
+            position = position_stack(vjust = 0.5), 
+            size = 4)
 
-# Run Chi-Square
-chisq_test_b <- chisq.test(table_high_pb, correct=FALSE)
-print(chisq_test_b)
-
-
-# --- STEP 4: THE CONFOUNDER CHECK (Age) ---
-# Question: Is the "Non-Immigrant" group significantly older? 
-# (If they are older, that explains why they have more CVD, regardless of Lead).
-
-print("--- CONFOUNDER CHECK: Age Difference ---")
-# Compare age of High Pb Immigrants vs High Pb Non-Immigrants
-immigrant_ages <- df_high_pb$RIDAGEYR[df_high_pb$Is_Immigrant == 1]
-non_immigrant_ages <- df_high_pb$RIDAGEYR[df_high_pb$Is_Immigrant == 0]
-
-t_test_age <- t.test(immigrant_ages, non_immigrant_ages)
-print(t_test_age)
-
-# Quick visualization of the means
-print(paste("Mean Age Immigrants (High Pb):", round(mean(immigrant_ages, na.rm=T), 2)))
-print(paste("Mean Age Non-Immigrants (High Pb):", round(mean(non_immigrant_ages, na.rm=T), 2)))
+print(plot_cvd)
+ggsave("cvd_prevalence.png", plot_cvd, width = 6, height = 5)
