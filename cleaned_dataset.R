@@ -10,10 +10,7 @@ demo_raw <- nhanes(paste0("DEMO", cycle_suffix)) %>%
          DMDBORN4)
 
 metals_raw <- nhanes(paste0("PBCD", cycle_suffix)) %>%
-  select(SEQN, 
-         LBXBPB, 
-         LBXBCD, 
-         LBXTHG) 
+  select(SEQN, LBXBPB)
 
 cvd_raw <- nhanes(paste0("MCQ", cycle_suffix)) %>%
   select(SEQN, 
@@ -36,12 +33,14 @@ df_final <- df_merged %>%
       1, 0, missing = 0
     )
   ) %>%
-  filter(!is.na(LBXBPB) & !is.na(LBXTHG)
+  filter(!is.na(LBXBPB)
          & !is.na(MCQ160E) & !is.na(MCQ160F)
          & !is.na(MCQ160B) & !is.na(MCQ160C)
          & MCQ160E != "Don't know" & MCQ160F != "Don't know" & 
            MCQ160B != "Don't know" & MCQ160C != "Don't know"
          & RIDAGEYR>=18)
+
+df_final$Pb_Category <- ifelse(df_final$LBXBPB >= 3.5, "High Pb", "Low Pb") 
 
 View(df_final)
 
