@@ -1,7 +1,7 @@
 library(nhanesA)
 library(tidyverse)
 
-cycle_suffix <- "_L"
+cycle_suffix <- "_J"
 
 demo_raw <- nhanes(paste0("DEMO", cycle_suffix)) %>%
   select(SEQN, 
@@ -25,7 +25,7 @@ df_merged <- list(demo_raw, metals_raw, cvd_raw) %>%
 df_final <- df_merged %>%
   mutate(
     Is_Immigrant = if_else(
-      (DMDBORN4 == "Born in 50 US states or Washington,"),
+      (DMDBORN4 == "Born in 50 US states or Washington, DC"),
       0, 1, missing = 0
     ),
     Has_CVD = if_else(

@@ -1,6 +1,5 @@
 data <- read.csv("data/dataset.csv")
 
-## Plots for Lead Pb ##
 
 pb_val = data$LBXBPB
 
@@ -28,3 +27,21 @@ hist(log_pb_val,
      xlab = "Log10 Blood Lead Level",
      col = "lightblue",
      las = 1)
+
+qqnorm(log_pb_val, 
+       main = "Normal Q-Q Plot of Log10(LBXBPB)",
+       pch = 19,
+       col = "darkblue", 
+       cex = 0.5)
+
+qqline(log_pb_val, 
+       col = "red", 
+       lwd = 2)
+
+
+
+
+summary(log_pb_val)
+summary(pb_val)
+sd(pb_val)
+sd(log_pb_val)

@@ -1,14 +1,8 @@
-# -----------------------------------------------------------------------------
-# Analysis of Cardiac Events (CVD): Chi-Square Test
-# -----------------------------------------------------------------------------
 library(tidyverse)
 library(ggplot2)
 
-# 1. Load Data
 data <- read.csv("data/dataset.csv")
 
-# 2. Preprocessing
-# Filter out missing values for these specific variables
 data_cvd <- data %>%
   filter(!is.na(Is_Immigrant) & !is.na(Has_CVD)) %>%
   mutate(
@@ -20,10 +14,8 @@ data_cvd <- data %>%
                        labels = c("No Event", "Cardiac Event"))
   )
 
-# 3. Create Contingency Table
 cvd_table <- table(data_cvd$Immigrant_Label, data_cvd$CVD_Label)
 
-# 4. Run Chi-Square Test
 chisq_result <- chisq.test(cvd_table)
 
 print("--- CARDIAC EVENT CONTINGENCY TABLE ---")
@@ -32,14 +24,12 @@ print(cvd_table)
 print("--- CHI-SQUARE TEST RESULTS ---")
 print(chisq_result)
 
-# 5. Calculate Prevalence (Percentages)
-# prop.table(x, 1) calculates proportions across rows
+
 prevalence <- prop.table(cvd_table, 1) * 100
 print("--- PREVALENCE OF CVD (%) ---")
 print(round(prevalence, 2))
 
-# 6. Visualization: Stacked Bar Chart
-# We calculate percentages manually for the plot to look nice
+
 plot_data <- data_cvd %>%
   group_by(Immigrant_Label, CVD_Label) %>%
   summarise(Count = n()) %>%
